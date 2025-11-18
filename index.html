@@ -27,10 +27,7 @@ button:hover{opacity:0.8;}
 <div class="result" id="result"></div>
 <script>
 const toggle=document.getElementById('toggleTheme');
-toggle.onclick=()=>{
-  document.body.classList.toggle('dark');
-  document.body.classList.toggle('light');
-};
+toggle.onclick=()=>{ document.body.classList.toggle('dark'); document.body.classList.toggle('light'); };
 async function fetchMedia(){
   const url=document.getElementById('url').value;
   if(!url) return alert('Paste URL');
