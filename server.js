@@ -18,30 +18,26 @@ const cache = new LRU({ max: 500, ttl: 1000 * 60 * 5 });
 
 function safeParseJSON(s){ try { return JSON.parse(s); } catch(e){ return null; } }
 function dedupe(media){ const seen = new Set(); return media.filter(m => { if(seen.has(m.url)) return false; seen.add(m.url); return true; }); }
-
-async function fetchHtml(url){
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  return await res.text();
-}
+async function fetchHtml(url){ const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }); return await res.text(); }
 
 function extractInstagramMedia(html){
   const media = [];
   const dom = new JSDOM(html);
   const doc = dom.window.document;
 
+  // OG tags
   const ogImage = doc.querySelector('meta[property="og:image"]')?.content;
   const ogVideo = doc.querySelector('meta[property="og:video"]')?.content;
   if(ogImage) media.push({type:'image',url:ogImage});
   if(ogVideo) media.push({type:'video',url:ogVideo});
 
+  // JSON-LD
   doc.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{
     const j = safeParseJSON(s.textContent);
-    if(j?.image){
-      if(Array.isArray(j.image)) j.image.forEach(u=>media.push({type:'image',url:u}));
-      else media.push({type:'image',url:j.image});
-    }
+    if(j?.image){ if(Array.isArray(j.image)) j.image.forEach(u=>media.push({type:'image',url:u})); else media.push({type:'image',url:j.image}); }
   });
 
+  // window._sharedData
   const match = html.match(/window\._sharedData\s*=\s*(\{[\s\S]*?\});/);
   if(match){
     const j = safeParseJSON(match[1]);
@@ -67,7 +63,6 @@ app.get('/api/fetch', async(req,res)=>{
   const url=req.query.url;
   if(!url) return res.status(400).json({error:'Missing url'});
   if(cache.has(url)) return res.json({media: cache.get(url),cached:true});
-
   try{
     const html = await fetchHtml(url);
     const media = extractInstagramMedia(html);
